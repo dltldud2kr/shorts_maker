@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>유튜브 쇼츠 생성기</title>
+</head>
+<body>
+<h2>MP4 + MP3 업로드</h2>
+<form method="post" enctype="multipart/form-data" th:action="@{/upload}">
+    <label>영상 파일 (MP4):</label>
+    <input type="file" name="videoFile" accept="video/mp4" required><br><br>
+
+    <label>음악 파일 (MP3):</label>
+    <input type="file" name="audioFile" accept="audio/mpeg" required><br><br>
+
+
+    <label for="startTime">Start Time (mm:ss):</label>
+    <input type="text" id="startTime" name="startTime" placeholder="00:00" required><br><br>
+
+
+    <button type="submit">전송</button>
+</form>
+</body>
+</html>
