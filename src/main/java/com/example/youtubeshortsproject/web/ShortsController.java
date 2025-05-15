@@ -9,7 +9,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,44 +20,52 @@ public class ShortsController {
 
     private final String uploadDir = "C:/shorts/upload/";
 
+
     @PostMapping("/upload")
     @ResponseBody
     public ResponseEntity<String> handleUpload(
-            @RequestParam("videoFile") MultipartFile videoFile,
+            @RequestParam("videoFile") MultipartFile[] videoFiles,
             @RequestParam("audioFile") MultipartFile audioFile,
             @RequestParam("startTime") String startTime) {
 
         try {
-            // 현재 날짜와 시간을 기반으로 디렉토리 생성
+            // 업로드 디렉토리 생성
             String currentDateTime = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-            String uploadDirWithDate = uploadDir + currentDateTime + "/";  // 날짜와 시간 포함된 디렉토리 경로
+            String uploadDirWithDate = uploadDir + currentDateTime + "/";
             File dir = new File(uploadDirWithDate);
-            if (!dir.exists()) {
-                dir.mkdirs();
+            if (!dir.exists()) dir.mkdirs();
+
+            // 영상 파일 저장 및 경로 수집
+            List<String> videoPaths = new ArrayList<>();
+            int idx = 1;
+            for (MultipartFile videoFile : videoFiles) {
+                String videoPath = uploadDirWithDate + "video" + idx++ + ".mp4";
+                videoFile.transferTo(new File(videoPath));
+                videoPaths.add(videoPath);
             }
 
-            // 파일명 난수값
-            String videoFileName = UUID.randomUUID().toString() + "_" + videoFile.getOriginalFilename();
-            String audioFileName = UUID.randomUUID().toString() + "_" + audioFile.getOriginalFilename();
-
-            // 저장할 파일 경로
-            String videoPath = uploadDirWithDate + videoFileName;
-            String audioPath = uploadDirWithDate + audioFileName;
-
-            // 파일 저장
-            videoFile.transferTo(new File(videoPath));
+            // 오디오 파일 저장
+            String audioPath = uploadDirWithDate + "original_audio.mp3";
             audioFile.transferTo(new File(audioPath));
 
-            // Start Time 을 초 단위로 변환
+            // 시작 시간 (초 단위)
             String[] timeParts = startTime.split(":");
             int startSeconds = Integer.parseInt(timeParts[0]) * 60 + Integer.parseInt(timeParts[1]);
 
-            // 파이썬 스크립트 실행
-            String outputPath = uploadDirWithDate + UUID.randomUUID().toString() + "_output_with_bgm.mp4";  // 출력 파일 이름에 난수값 추가
+            // 출력 파일명 설정
+            String outputPath = uploadDirWithDate + "shorts_final.mp4";
 
-            ProcessBuilder pb = new ProcessBuilder(
-                    "python", "C:/pythonShortsProject/test.py", videoPath, audioPath, outputPath, String.valueOf(startSeconds));
-            System.out.println("startSeconds: " + startSeconds);
+            // 파이썬 인자 구성 (video1.mp4 video2.mp4 ... audio.mp3 output.mp4 startTime)
+            List<String> command = new ArrayList<>();
+            command.add("python");
+            command.add("C:/pythonShortsProject/test2.py");
+            command.addAll(videoPaths);
+            command.add(audioPath);
+            command.add(outputPath);
+            command.add(String.valueOf(startSeconds));
+
+            // 파이썬 실행
+            ProcessBuilder pb = new ProcessBuilder(command);
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
@@ -70,11 +80,15 @@ public class ShortsController {
                 return ResponseEntity.status(500).body("Python script failed.");
             }
 
-            return ResponseEntity.ok("영상 생성 완료! 파일 경로: " + outputPath);
+            // 원본 파일 삭제
+            for (String path : videoPaths) new File(path).delete();
+            new File(audioPath).delete();
+
+            return ResponseEntity.ok("🎬 영상 생성 완료!\n경로: " + outputPath);
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("에러: " + e.getMessage());
+            return ResponseEntity.status(500).body("에러 발생: " + e.getMessage());
         }
     }
 }

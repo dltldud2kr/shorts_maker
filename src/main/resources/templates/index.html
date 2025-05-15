@@ -3,20 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <title>유튜브 쇼츠 생성기</title>
+    <script>
+        let videoCount = 1;
+
+        function addVideoInput() {
+            if (videoCount >= 5) {
+                alert("최대 5개의 영상만 업로드할 수 있습니다.");
+                return;
+            }
+
+            videoCount++;
+            const container = document.getElementById("videoInputs");
+            const newInput = document.createElement("input");
+            newInput.type = "file";
+            newInput.name = "videoFile";
+            newInput.accept = "video/mp4";
+            newInput.required = true;
+            container.appendChild(document.createElement("br"));
+            container.appendChild(newInput);
+        }
+    </script>
 </head>
 <body>
 <h2>MP4 + MP3 업로드</h2>
+
 <form method="post" enctype="multipart/form-data" th:action="@{/upload}">
-    <label>영상 파일 (MP4):</label>
-    <input type="file" name="videoFile" accept="video/mp4" required><br><br>
+    <div id="videoInputs">
+        <label>영상 파일 (MP4):</label>
+        <input type="file" name="videoFile" accept="video/mp4" required>
+    </div>
+    <button type="button" onclick="addVideoInput()">+ 영상 추가</button>
+    <br><br>
 
     <label>음악 파일 (MP3):</label>
     <input type="file" name="audioFile" accept="audio/mpeg" required><br><br>
 
-
     <label for="startTime">Start Time (mm:ss):</label>
     <input type="text" id="startTime" name="startTime" placeholder="00:00" required><br><br>
-
 
     <button type="submit">전송</button>
 </form>
